@@ -69,13 +69,12 @@ A continuación se presentan las pruebas realizadas para validar los endpoints, 
 - **Response Body (JSON):**
 ```json
 {
-  "id": "69ee9896fd70965996d136db",
   "email": "nuevo@example.com",
   "name": "Pedro Paramo Perez",
   "phone": "+1234567890",
-  "getTaxId": "PAPP900101",
-  "created_at": "2026-04-26T16:58:30.986489974",
-  "update_at": "2026-04-26T16:58:30.986489974",
+  "taxId": "PAPP900101",
+  "created_at": "2026-04-26T23:26:48.105",
+  "update_at": "2026-04-26T23:26:48.105",
   "addresses": [
     {
       "id": null,
@@ -96,12 +95,12 @@ A continuación se presentan las pruebas realizadas para validar los endpoints, 
 ```json
 [
   {
-    "id": "69ee9896fd70965996d136db",
+    "id": "69ee9f38f09ec34a1c58d90b",
     "email": "nuevo@example.com",
     "name": "Pedro Paramo Perez",
     "phone": "+1234567890",
     "taxId": "PAPP900101",
-    "created_at": "26-04-2026 16:58",
+    "created_at": "2026-04-26T23:26:48.105",
     "addresses": [
       {
         "id": null,
@@ -114,3 +113,72 @@ A continuación se presentan las pruebas realizadas para validar los endpoints, 
   }
 ]
 ```
+
+### Prueba 3: Obtener Usuario por ID
+- **Path:** `/api/v1/users/{id}`
+- **Verbo:** `GET`
+- **Request:** *(Sustituir `{id}` por el ID devuelto en la creación)*
+- **Response HTTP:** `200 OK`
+- **Response Body (JSON):**
+```json
+{
+  "id": "69ee9f38f09ec34a1c58d90b",
+  "email": "nuevo@example.com",
+  "name": "Pedro",
+  "phone": "+1234567890",
+  "taxId": "PAPP900101",
+  "created_at": "2026-04-26T23:26:48.105",
+  "addresses": [
+    {
+      "id": null,
+      "name": "Home",
+      "street": "Main St 123",
+      "countryCode": "US"
+    }
+  ],
+  "active": true
+}
+```
+
+### Prueba 4: Actualizar un Usuario
+- **Path:** `/api/v1/users/{id}`
+- **Verbo:** `PATCH`
+- **Request (JSON):**
+```json
+{
+  "email": "testing.api.patched@example.com",
+  "name": "Pedro",
+  "lastName1": "Paramo",
+  "lastName2": "Perez",
+  "birthDate": "1990-01-01",
+  "phone": "+1987654321"
+}
+```
+- **Response HTTP:** `200 OK`
+- **Response Body (JSON):**
+```json
+{
+  "id": "69ee9f38f09ec34a1c58d90b",
+  "email": "testing.api.patched@example.com",
+  "name": "Pedro Paramo Perez",
+  "phone": "+1987654321",
+  "taxId": "PAPP900101",
+  "created_at": "2026-04-26T23:26:48.105",
+  "update_at": "2026-04-26T23:27:01.788",
+  "addresses": [
+    {
+      "id": null,
+      "name": "Home",
+      "street": "Main St 123",
+      "countryCode": "US"
+    }
+  ]
+}
+```
+
+### Prueba 5: Eliminar un Usuario
+- **Path:** `/api/v1/users/{id}`
+- **Verbo:** `DELETE`
+- **Request:** *(Ningún body requerido)*
+- **Response HTTP:** `204 No Content`
+- **Response Body:** *(Vacío)*

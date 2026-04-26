@@ -35,3 +35,5 @@ Thumbs.db
 /docker
 
 src/main/resources/META-INF/additional-spring-configuration-metadata.json
+
+.mvn/

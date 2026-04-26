@@ -1,7 +1,6 @@
 package com.example.demo.controller;
 
-import java.util.Map;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,18 +10,24 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import com.example.demo.dto.CreateCustomerRequest;
+import com.example.demo.dto.UpdateUserRequest;
+import com.example.demo.dto.UserResponse;
 import com.example.demo.model.User;
 import com.example.demo.service.UserService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/v1/users")
+@RequiredArgsConstructor
 @Slf4j
 public class UserController {
 
-  @Autowired
-  private UserService userService;
+  private final UserService userService;
 
   /**
    * Controller all users sortedBy
@@ -35,7 +40,6 @@ public class UserController {
     log.info("GET -> /api/v1/users");
     return userService.findAll(sortedBy);
   }
-
 
   /**
    * Controller get User for ID
@@ -58,9 +62,11 @@ public class UserController {
    * @throws Exception
    */
   @PostMapping
-  public ResponseEntity<Object> createUser(@RequestBody User user) throws Exception {
-    log.info("POST -> /api/v1/users Request {}", user.toString());
-    return userService.save(user);
+  @ResponseStatus(HttpStatus.CREATED)
+  public UserResponse createUser(@Valid @RequestBody CreateCustomerRequest request)
+      throws Exception {
+    log.info("POST -> /api/v1/users Request {}", request.toString());
+    return userService.save(request);
   }
 
   /**
@@ -70,9 +76,10 @@ public class UserController {
    * @return
    */
   @DeleteMapping("/{id}")
-  public ResponseEntity<Object> deleteUser(@PathVariable String id) {
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void deleteUser(@PathVariable String id) {
     log.info("DELETE -> /api/v1/users/{}", id);
-    return userService.deleteById(id);
+    userService.delete(id);
   }
 
   /**
@@ -83,10 +90,10 @@ public class UserController {
    * @return
    */
   @PatchMapping("/{id}")
-  public ResponseEntity<User> patchUser(@PathVariable String id,
-      @RequestBody Map<String, Object> updates) {
+  public UserResponse patchUser(@PathVariable String id,
+      @Valid @RequestBody UpdateUserRequest requet) {
     log.info("PATCH -> /api/v1/users/{}", id);
-    return userService.save(id, updates);
+    return userService.update(id, requet);
   }
 
 }

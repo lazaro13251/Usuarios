@@ -4,26 +4,31 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import java.time.LocalDate;
-import java.util.HashMap;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
+import com.example.demo.dto.AddressRequest;
+import com.example.demo.dto.CreateCustomerRequest;
+import com.example.demo.dto.UpdateUserRequest;
+import com.example.demo.dto.UserResponse;
 import com.example.demo.model.User;
 import com.example.demo.repository.UserRepository;
 
+@ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
   @InjectMocks
@@ -32,126 +37,137 @@ class UserServiceTest {
   private UserRepository userRepository;
 
   private User user;
+  private CreateCustomerRequest createUser;
+  private UpdateUserRequest updateUser;
+  private User resposeUser;
   private final String userId = "123";
 
   @BeforeEach
   void setUp() {
-    MockitoAnnotations.openMocks(this);
     user = new User();
+    user.setId(userId);
     user.setEmail("test@example.com");
     user.setPassword("password123");
     user.setName("Test");
     user.setLastName1("User");
     user.setLastName2("One");
     user.setBirthDate(LocalDate.of(1990, 1, 1));
+    user.setCreated_at(LocalDateTime.now());
+    user.setUpdate_at(LocalDateTime.now());
+    
+    createUser = new CreateCustomerRequest(
+        "test@example.com",
+        "Test",
+        "User",
+        "One",
+        LocalDate.of(1990, 1, 1),
+        "+1234567890",
+        "Password123!",
+        List.of(new AddressRequest(1, "Home", "123 Main St", "US"))
+    );
+
+    updateUser = new UpdateUserRequest(
+        "update@example.com",
+        "Updated",
+        "Name",
+        "Two",
+        LocalDate.of(1992, 2, 2),
+        "+0987654321"
+    );
+
+    resposeUser = user;
   }
 
-
   @Test
-  void createUser_ShouldEncryptPasswordAndSaveUser() throws Exception {
-    when(userRepository.save(any(User.class))).thenReturn(user);
-    var savedUser = userService.save(user);
+  void save_ShouldEncryptPasswordAndSaveUser() throws Exception {
+    when(userRepository.save(any(User.class))).thenReturn(resposeUser);
+    UserResponse savedUser = userService.save(createUser);
+    
     assertNotNull(savedUser);
+    assertEquals(resposeUser.getId(), savedUser.id());
     verify(userRepository, times(1)).save(any(User.class));
   }
 
   @Test
   void findAll_SortedByEmail() {
-    List<User> mockUsers = List.of(new User(), new User());
+    List<User> mockUsers = List.of(user, new User());
     Sort sort = Sort.by("email").ascending();
     when(userRepository.findAll(sort)).thenReturn(mockUsers);
-    var result = userService.findAll("email");
+    
+    ResponseEntity<Object> result = userService.findAll("email");
+    
     assertNotNull(result);
+    assertEquals(HttpStatus.OK, result.getStatusCode());
     verify(userRepository, times(1)).findAll(sort);
   }
 
   @Test
+  void findAll_Unsorted() {
+    List<User> mockUsers = List.of(user, new User());
+    when(userRepository.findAll()).thenReturn(mockUsers);
+    
+    ResponseEntity<Object> result = userService.findAll(null);
+    
+    assertNotNull(result);
+    assertEquals(HttpStatus.OK, result.getStatusCode());
+    verify(userRepository, times(1)).findAll();
+  }
+
+  @Test
+  void findAll_EmptyList_ReturnsNoContent() {
+    when(userRepository.findAll()).thenReturn(List.of());
+    
+    ResponseEntity<Object> result = userService.findAll("");
+    
+    assertNotNull(result);
+    assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+    verify(userRepository, times(1)).findAll();
+  }
+
+  @Test
   void findById_ShouldReturnUser_WhenUserExists() {
-    String userId = "123";
-    User mockUser = new User();
-    mockUser.setId(userId);
-    mockUser.setName("Test User");
-    when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    
     User result = userService.findById(userId);
+    
     assertNotNull(result);
     assertEquals(userId, result.getId());
-    assertEquals("Test User", result.getName());
+    assertEquals("Test", result.getName());
   }
 
   @Test
   void findById_ShouldThrowException_WhenUserDoesNotExist() {
-    String userId = "999";
-    when(userRepository.findById(userId)).thenReturn(Optional.empty());
-    RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-      userService.findById(userId);
+    String invalidId = "999";
+    when(userRepository.findById(invalidId)).thenReturn(Optional.empty());
+    
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+      userService.findById(invalidId);
     });
-    assertEquals("Usuario no encontrado con id: " + userId, exception.getMessage());
+    
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    assertEquals("User not found", exception.getReason());
   }
 
   @Test
-  void deleteById_ShouldReturnOk_WhenUserExists() {
-    String userId = "123";
-    when(userRepository.existsById(userId)).thenReturn(true);
-    ResponseEntity<Object> response = userService.deleteById(userId);
-    assertEquals(HttpStatus.OK, response.getStatusCode());
-    assertEquals("Usuario eliminado correctamente", response.getBody());
-    verify(userRepository, times(1)).deleteById(userId);
-  }
-
-  @Test
-  void deleteById_ShouldReturnNotFound_WhenUserDoesNotExist() {
-    String userId = "999";
-    when(userRepository.existsById(userId)).thenReturn(false);
-    ResponseEntity<Object> response = userService.deleteById(userId);
-    assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-    verify(userRepository, times(0)).deleteById(anyString()); // No debe llamar a delete
-  }
-
-  @Test
-  void deleteById_ShouldReturnBadRequest_WhenIllegalArgumentException() {
-    String invalidId = "invalid-id";
-    when(userRepository.existsById(invalidId)).thenThrow(new IllegalArgumentException());
-    ResponseEntity<Object> response = userService.deleteById(invalidId);
-    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-    assertEquals("ID con formato inválido", response.getBody());
-  }
-
-  @Test
-  void savePatch_ShouldUpdateFieldsAndReturnOk_WhenUserExists() {
-    Map<String, Object> updates = new HashMap<>();
-    updates.put("name", "Updated Name");
-    updates.put("email", "updated@email.com");
+  void update_ShouldUpdateAndReturnUser() {
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-    when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-    ResponseEntity<User> response = userService.save(userId, updates);
-    assertEquals(HttpStatus.OK, response.getStatusCode());
-    assertNotNull(response.getBody());
-    assertEquals("Updated Name", response.getBody().getName());
-    assertEquals("updated@email.com", response.getBody().getEmail());
+    when(userRepository.save(any(User.class))).thenReturn(user);
+
+    UserResponse result = userService.update(userId, updateUser);
+
+    assertNotNull(result);
+    verify(userRepository, times(1)).findById(userId);
     verify(userRepository, times(1)).save(any(User.class));
   }
 
   @Test
-  void savePatch_ShouldReturnNotFound_WhenUserDoesNotExist() {
-    Map<String, Object> updates = new HashMap<>();
-    updates.put("name", "New Name");
-    when(userRepository.findById(userId)).thenReturn(Optional.empty());
-    ResponseEntity<User> response = userService.save(userId, updates);
-    assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-    verify(userRepository, times(0)).save(any(User.class));
-  }
-
-  @Test
-  void savePatch_ShouldIgnoreInvalidFields_WhenFieldDoesNotExist() {
-    Map<String, Object> updates = new HashMap<>();
-    updates.put("nonExistentField", "someValue");
-    updates.put("name", "Updated Name");
+  void delete_ShouldDeactivateUser() {
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-    when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-    ResponseEntity<User> response = userService.save(userId, updates);
-    assertEquals(HttpStatus.OK, response.getStatusCode());
-    assertEquals("Updated Name", response.getBody().getName());
+    when(userRepository.save(any(User.class))).thenReturn(user);
+
+    userService.delete(userId);
+
+    verify(userRepository, times(1)).findById(userId);
     verify(userRepository, times(1)).save(any(User.class));
   }
-
 }

@@ -1,26 +1,32 @@
 package com.example.demo.service;
 
-import java.lang.reflect.Field;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import com.example.demo.dto.CreateCustomerRequest;
+import com.example.demo.dto.UpdateUserRequest;
+import com.example.demo.dto.UserResponse;
+import com.example.demo.model.Address;
 import com.example.demo.model.User;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.utils.UserUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Service
  */
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class UserService {
 
-  @Autowired
-  private UserRepository userRepository;
+  private final UserRepository userRepository;
 
   /**
    * @param sortedBy
@@ -43,7 +49,6 @@ public class UserService {
     return ResponseEntity.ok(users);
   }
 
-
   /**
    * Find by ID
    * 
@@ -52,7 +57,7 @@ public class UserService {
    */
   public User findById(String id) {
     return userRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Usuario no encontrado con id: " + id));
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
   }
 
 
@@ -64,35 +69,33 @@ public class UserService {
    * @return
    * @throws Exception
    */
-  public ResponseEntity<Object> save(User user) throws Exception {
-    String encryptedPassword = UserUtils.encrypt(user.getPassword());
-    user.setPassword(encryptedPassword);
-    log.info("Request: {}", user.toString());
-    User savedUser = userRepository.save(user);
-    log.info("Documento guardado");
-    return ResponseEntity.status(201).body(savedUser);
-  }
+  @Transactional
+  public UserResponse save(CreateCustomerRequest request) throws Exception {
 
-  /**
-   * Delete for ID
-   * 
-   * @param id
-   * @return
-   */
-  public ResponseEntity<Object> deleteById(String id) {
-    try {
-      if (userRepository.existsById(id)) {
-        userRepository.deleteById(id);
-        log.info("Usuario eliminado exitosamente: {}", id);
-        return ResponseEntity.ok("Usuario eliminado correctamente");
-      } else {
-        log.warn("Intento de eliminar usuario inexistente: {}", id);
-        return ResponseEntity.notFound().build();
-      }
-    } catch (IllegalArgumentException e) {
-      log.error("Formato de ID inválido para borrado: {}", id);
-      return ResponseEntity.badRequest().body("ID con formato inválido");
-    }
+    String encryptedPassword = UserUtils.encrypt(request.password());
+
+
+    List<Address> userAddresses =
+        request.AddressRequest().stream().map(addrReq -> Address.builder().name(addrReq.name())
+            .street(addrReq.street()).countryCode(addrReq.countryCode()).build()).toList();
+
+    User user = User.builder()
+        .name(request.name())
+        .lastName1(request.lastName1())
+        .lastName2(request.lastName2())
+        .birthDate(request.birthDate())
+        .phone(request.phone())
+        .password(encryptedPassword)
+        .created_at(LocalDateTime.now())
+        .update_at(LocalDateTime.now())
+        .active(true)
+        .email(request.email())
+        .addresses(userAddresses).build();
+
+
+    log.info("Request: {}", request.toString());
+
+    return toResponse(userRepository.save(user));
   }
 
 
@@ -103,28 +106,36 @@ public class UserService {
    * @param updates
    * @return
    */
-  public ResponseEntity<User> save(String id, Map<String, Object> updates) {
-    log.info("--- PATCH Dinámico para ID: {} ---", id);
-    try {
-      return userRepository.findById(id).map(existingUser -> {
-        updates.forEach((key, value) -> {
-          try {
-            Field field = User.class.getDeclaredField(key);
-            field.setAccessible(true);
-            field.set(existingUser, value);
-            log.info("Campo '{}' actualizado a: {}", key, value);
-          } catch (NoSuchFieldException e) {
-            log.warn("El campo '{}' no existe en el objeto User. Ignorando.", key);
-          } catch (IllegalAccessException e) {
-            log.error("No se pudo acceder al campo '{}'", key);
-          }
-        });
-        User updatedUser = userRepository.save(existingUser);
-        return ResponseEntity.ok(updatedUser);
-      }).orElse(ResponseEntity.notFound().build());
+  @Transactional
+  public UserResponse update(String id, UpdateUserRequest request) {
+    User user = findById(id);
+    user.setEmail(request.email());
+    user.setName(request.name());
+    user.setLastName1(request.lastName1());
+    user.setLastName2(request.lastName2());
+    user.setBirthDate(request.birthDate());
+    user.setPhone(request.phone());
+    user.setUpdate_at(LocalDateTime.now());
+    return toResponse(userRepository.save(user));
+  }
 
-    } catch (IllegalArgumentException e) {
-      return ResponseEntity.badRequest().build();
-    }
+  @Transactional
+  public void delete(String id) {
+    User user = findById(id);
+    user.setActive(false);
+    userRepository.save(user);
+    log.warn("Usuario Eliminado: {}", id);
+  }
+
+  /**
+   * @param customer
+   * @return
+   */
+  private UserResponse toResponse(User response) {
+    String name = String.format("%s %s %s", response.getName(), response.getLastName1(),
+        response.getLastName2());
+    return new UserResponse(response.getId(), response.getEmail(), name, response.getPhone(),
+        response.getTaxId(), response.getCreated_at(), response.getUpdate_at(),
+        response.getAddresses());
   }
 }

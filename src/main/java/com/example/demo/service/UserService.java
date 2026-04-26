@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.example.demo.dto.CreateCustomerRequest;
 import com.example.demo.dto.UpdateUserRequest;
 import com.example.demo.dto.UserResponse;
+import com.example.demo.model.Address;
 import com.example.demo.model.User;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.utils.UserUtils;
@@ -73,10 +74,24 @@ public class UserService {
 
     String encryptedPassword = UserUtils.encrypt(request.password());
 
-    User user = User.builder().name(request.name()).lastName1(request.lastName1())
-        .lastName2(request.lastName2()).birthDate(request.birthDate()).phone(request.phone())
-        .password(encryptedPassword).created_at(LocalDateTime.now()).update_at(LocalDateTime.now())
-        .active(true).email(request.email()).build();
+
+    List<Address> userAddresses =
+        request.AddressRequest().stream().map(addrReq -> Address.builder().name(addrReq.name())
+            .street(addrReq.street()).countryCode(addrReq.countryCode()).build()).toList();
+
+    User user = User.builder()
+        .name(request.name())
+        .lastName1(request.lastName1())
+        .lastName2(request.lastName2())
+        .birthDate(request.birthDate())
+        .phone(request.phone())
+        .password(encryptedPassword)
+        .created_at(LocalDateTime.now())
+        .update_at(LocalDateTime.now())
+        .active(true)
+        .email(request.email())
+        .addresses(userAddresses).build();
+
 
     log.info("Request: {}", request.toString());
 
@@ -120,6 +135,7 @@ public class UserService {
     String name = String.format("%s %s %s", response.getName(), response.getLastName1(),
         response.getLastName2());
     return new UserResponse(response.getId(), response.getEmail(), name, response.getPhone(),
-        response.getTaxId(), response.getCreated_at(), response.getUpdate_at(), null);
+        response.getTaxId(), response.getCreated_at(), response.getUpdate_at(),
+        response.getAddresses());
   }
 }

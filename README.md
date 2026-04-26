@@ -22,7 +22,7 @@ Para ejecutar las pruebas y compilar el proyecto, abre una terminal en la raíz 
 
 Para **arrancar la aplicación**, ejecuta:
 ```bash
-./mvnw spring-boot:run
+docker compose up --build
 ```
 Al ejecutar este comando, Spring Boot detectará el archivo `docker-compose.yaml` y automáticamente levantará el contenedor de MongoDB en segundo plano. La aplicación se iniciará por defecto en el puerto **8080**.
 

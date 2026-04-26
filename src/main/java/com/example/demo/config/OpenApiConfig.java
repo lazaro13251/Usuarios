@@ -11,7 +11,7 @@ public class OpenApiConfig {
 
 	@Bean
 	OpenAPI customOpenAPI() {
-		return new OpenAPI().info(new Info().title("API de Mi Proyecto").version("1.0")
+		return new OpenAPI().info(new Info().title("API Gestion de Usuarios").version("1.0")
 				.description("Documentación detallada de los servicios de mi API Maven"));
 	}
 

@@ -1,0 +1,37 @@
+# --- Archivos de construcción y temporales de Maven ---
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+
+# --- Archivos de Spring Boot ---
+target/
+
+# --- STS / Eclipse / IntelliJ ---
+.settings/
+.classpath
+.project
+.factorypath
+.metadata/
+.springBeans
+.tooling/
+.dbeaver/
+
+# --- Base de datos local (volumen de Docker) ---
+mysql/
+/docker
+
+# --- Logs y temporales del sistema ---
+*.log
+hs_err_pid*
+replay_pid*
+.DS_Store
+Thumbs.db
+/docker
+
+src/main/resources/META-INF/additional-spring-configuration-metadata.json

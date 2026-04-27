@@ -42,7 +42,6 @@ public class User {
   private String lastName2;
 
   @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
   private LocalDate birthDate;
 
   private String phone;
@@ -56,7 +55,6 @@ public class User {
 
 
   @CreatedDate
-  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm")
   @Field("created_at")
   private LocalDateTime created_at;
 

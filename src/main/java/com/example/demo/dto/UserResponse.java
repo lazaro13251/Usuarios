@@ -10,7 +10,7 @@ public record UserResponse(
     String email,
     String name,
     String phone, 
-    String getTaxId,
+    String taxId,
     LocalDateTime created_at,
     LocalDateTime update_at,
     List<Address> addresses
